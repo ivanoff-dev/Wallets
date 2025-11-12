@@ -4,9 +4,12 @@ from .models import Operation, Wallet
 
 
 class WalletSerializer(serializers.ModelSerializer):
+    balance = serializers.IntegerField(
+        min_value=0
+    )
 
     class Meta:
-        fields = ('balance')
+        fields = ('balance',)
         model = Wallet
 
 

@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.core.validators import MinValueValidator
 
 
 class Wallet(models.Model):
@@ -11,7 +12,8 @@ class Wallet(models.Model):
         unique=True
     )
     balance = models.IntegerField(
-        null=False
+        null=False,
+        validators=[MinValueValidator(0)],
     )
 
 
