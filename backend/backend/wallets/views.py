@@ -13,13 +13,21 @@ from .serializers import OperationSerializer, WalletSerializer
 
 
 @api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@authentication_classes([])
+@permission_classes([])
 def get_wallet(request, id):
+    """Метод позволяет получить баланс кошелька по идентификатору кошелька"""
     try:
-        wallet = get_object_or_404(Wallet, id=id)
+        wallet = Wallet.objects.get(id=id)
         serializer = WalletSerializer(wallet)
         return JsonResponse(serializer.data, status=status.HTTP_200_OK)
+    except Wallet.DoesNotExist:
+        return JsonResponse(
+            {
+                'message': 'Кошелек не найден'
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         print(f'Ошибка операции: {e}')
         return JsonResponse(
@@ -31,14 +39,26 @@ def get_wallet(request, id):
 
 
 @api_view(['POST'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@authentication_classes([])
+@permission_classes([])
 def create_operation(request, wallet_id):
+    """Метод позволяет изменить баланс кошелька по его идентификатору.
+    Доступны два типа операции:
+    DEPOSIT - пополнение кошелька,
+    WITHDRAW - списание с кошелька.
+    Необходимо указать сумму больше либо равную нулю.
+    Списание будет невозможно, если недостаточно средств на кошельке."""
     try:
         with transaction.atomic():
-            wallet = get_object_or_404(
-                Wallet.objects.select_for_update(), id=wallet_id
-            )
+            try:
+                wallet = Wallet.objects.select_for_update().get(id=wallet_id)
+            except Wallet.DoesNotExist:
+                return JsonResponse(
+                    {
+                        'message': 'Кошелек не найден'
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
             serializer = OperationSerializer(
                 data=request.data,
                 context={
@@ -75,7 +95,7 @@ def create_operation(request, wallet_id):
             data = {
                 'operation_id': operation.id,
                 'status': 'SUCCESS',
-                'type': operation.type,
+                'operation_type': operation.type,
                 'amount': operation.amount,
                 'new_balance': wallet.balance
             }
